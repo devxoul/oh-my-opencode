@@ -199,8 +199,16 @@ OpenCode가 설치되어 있지 않다면, [OpenCode 설치 가이드](https://o
 
 ### 2단계: oh-my-opencode 플러그인 설정
 
+**중요**: 진행하기 전에, npm에서 oh-my-opencode의 최신 버전을 확인하세요:
+
+```bash
+npm view oh-my-opencode version
+```
+
+아래 플러그인 설정에 정확한 버전(예: `oh-my-opencode@2.2.0`)을 사용하세요. 이렇게 하면 실행 시마다 버전 확인을 하지 않아 시작 속도가 빨라집니다.
+
 #### JSONC
-- `~/.config/opencode/opencode.jsonc`가 존재한다면, 그곳에 `oh-my-opencode` 플러그인을 추가하세요.
+- `~/.config/opencode/opencode.jsonc`가 존재한다면, 그곳에 `oh-my-opencode@x.y.z` 플러그인을 추가하세요 (`x.y.z`를 최신 버전으로 교체).
 
 #### JSON
 - opencode.jsonc가 없다면, 다음 명령어를 실행하여 생성하고 등록하세요.
@@ -208,18 +216,21 @@ OpenCode가 설치되어 있지 않다면, [OpenCode 설치 가이드](https://o
 ```bash
 mkdir -p ~/.config/opencode
 
+# 먼저 최신 버전을 확인
+LATEST_VERSION=$(npm view oh-my-opencode version)
+
 if [ -f ~/.config/opencode/opencode.json ]; then
     # 기존 설정 파일이 있는 경우: jq 또는 python으로 plugin 추가
     if command -v jq &> /dev/null; then
-        jq '.plugin = ((.plugin // []) + ["oh-my-opencode"] | unique)' \
+        jq --arg ver "oh-my-opencode@$LATEST_VERSION" '.plugin = ((.plugin // []) + [$ver] | unique)' \
             ~/.config/opencode/opencode.json > /tmp/oc.json && \
             mv /tmp/oc.json ~/.config/opencode/opencode.json
     else
-        echo "~/.config/opencode/opencode.json의 plugin 배열에 \"oh-my-opencode\"를 추가하세요"
+        echo "~/.config/opencode/opencode.json의 plugin 배열에 \"oh-my-opencode@$LATEST_VERSION\"를 추가하세요"
     fi
 else
     # 새 설정 파일 생성
-    echo '{"plugin":["oh-my-opencode"]}' > ~/.config/opencode/opencode.json
+    echo "{\"plugin\":[\"oh-my-opencode@$LATEST_VERSION\"]}" > ~/.config/opencode/opencode.json
 fi
 ```
 

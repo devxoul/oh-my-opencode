@@ -231,8 +231,16 @@ Spawn a subagent to handle installation and report back - to save context.
 
 ### Step 2: Configure oh-my-opencode Plugin
 
+**IMPORTANT**: Before proceeding, check the latest version of oh-my-opencode on npm:
+
+```bash
+npm view oh-my-opencode version
+```
+
+Use the exact version (e.g., `oh-my-opencode@2.2.0`) in the plugin configuration below. This ensures faster startup by avoiding version resolution on every launch.
+
 #### JSONC
-- If `~/.config/opencode/opencode.jsonc` exists, work in there to add `oh-my-opencode` plugin
+- If `~/.config/opencode/opencode.jsonc` exists, work in there to add `oh-my-opencode@x.y.z` plugin (replace `x.y.z` with the latest version)
 
 #### JSON
 - If no opencode.jsonc exists, run following command to create and register it.
@@ -240,18 +248,21 @@ Spawn a subagent to handle installation and report back - to save context.
 ```bash
 mkdir -p ~/.config/opencode
 
+# First, get the latest version
+LATEST_VERSION=$(npm view oh-my-opencode version)
+
 if [ -f ~/.config/opencode/opencode.json ]; then
     # Existing config: add plugin using jq or python
     if command -v jq &> /dev/null; then
-        jq '.plugin = ((.plugin // []) + ["oh-my-opencode"] | unique)' \
+        jq --arg ver "oh-my-opencode@$LATEST_VERSION" '.plugin = ((.plugin // []) + [$ver] | unique)' \
             ~/.config/opencode/opencode.json > /tmp/oc.json && \
             mv /tmp/oc.json ~/.config/opencode/opencode.json
     else
-        echo "Please add \"oh-my-opencode\" to the plugin array in ~/.config/opencode/opencode.json"
+        echo "Please add \"oh-my-opencode@$LATEST_VERSION\" to the plugin array in ~/.config/opencode/opencode.json"
     fi
 else
     # Create new config
-    echo '{"plugin":["oh-my-opencode"]}' > ~/.config/opencode/opencode.json
+    echo "{\"plugin\":[\"oh-my-opencode@$LATEST_VERSION\"]}" > ~/.config/opencode/opencode.json
 fi
 ```
 

@@ -202,8 +202,16 @@ OpenCode がインストールされていない場合は、[OpenCode インス�
 
 ### ステップ 2: oh-my-opencode プラグイン設定
 
+**重要**: 進む前に、npm で oh-my-opencode の最新バージョンを確認してください：
+
+```bash
+npm view oh-my-opencode version
+```
+
+以下のプラグイン設定には正確なバージョン（例：`oh-my-opencode@2.2.0`）を使用してください。これにより、起動のたびにバージョン解決を行わなくて済み、起動が速くなります。
+
 #### JSONC
-- `~/.config/opencode/opencode.jsonc` が存在する場合は、そこで `oh-my-opencode` プラグインを追加してください。
+- `~/.config/opencode/opencode.jsonc` が存在する場合は、そこで `oh-my-opencode@x.y.z` プラグインを追加してください（`x.y.z` を最新バージョンに置き換え）。
 
 #### JSON
 - opencode.jsonc が存在しない場合は、以下のコマンドを実行して作成・登録してください。
@@ -211,18 +219,21 @@ OpenCode がインストールされていない場合は、[OpenCode インス�
 ```bash
 mkdir -p ~/.config/opencode
 
+# まず最新バージョンを取得
+LATEST_VERSION=$(npm view oh-my-opencode version)
+
 if [ -f ~/.config/opencode/opencode.json ]; then
     # 既存の設定ファイルがある場合: jq または python で plugin を追加
     if command -v jq &> /dev/null; then
-        jq '.plugin = ((.plugin // []) + ["oh-my-opencode"] | unique)' \
+        jq --arg ver "oh-my-opencode@$LATEST_VERSION" '.plugin = ((.plugin // []) + [$ver] | unique)' \
             ~/.config/opencode/opencode.json > /tmp/oc.json && \
             mv /tmp/oc.json ~/.config/opencode/opencode.json
     else
-        echo "~/.config/opencode/opencode.json の plugin 配列に \"oh-my-opencode\" を追加してください"
+        echo "~/.config/opencode/opencode.json の plugin 配列に \"oh-my-opencode@$LATEST_VERSION\" を追加してください"
     fi
 else
     # 新しい設定ファイル作成
-    echo '{"plugin":["oh-my-opencode"]}' > ~/.config/opencode/opencode.json
+    echo "{\"plugin\":[\"oh-my-opencode@$LATEST_VERSION\"]}" > ~/.config/opencode/opencode.json
 fi
 ```
 
