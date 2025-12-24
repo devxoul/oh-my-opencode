@@ -1,5 +1,6 @@
 import { tool } from "@opencode-ai/plugin/tool"
-import { MAX_OUTPUT_SIZE, TIMEOUT_MS } from "./constants"
+import { DEFAULT_STRATEGY, MAX_OUTPUT_SIZE, MAX_RAW_SIZE, TIMEOUT_MS } from "./constants"
+import type { CompactionStrategy } from "./types"
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`
@@ -30,34 +31,62 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<string>
   }
 }
 
+function applyStrategy(content: string, _strategy: CompactionStrategy): string {
+  return content
+}
+
 export const webfetch = tool({
-  description: "Fetch content from a URL and return the raw response.",
+  description:
+    "Fetch and process web content with compaction strategies.\n\n" +
+    "STRATEGY SELECTION GUIDE:\n" +
+    "- 'raw': No processing. Only for small responses (<100KB) when you need exact content.",
   args: {
     url: tool.schema.string().describe("The URL to fetch"),
+    strategy: tool.schema
+      .enum(["raw"])
+      .optional()
+      .describe("Compaction strategy (default: raw)."),
   },
   execute: async (args) => {
+    const strategy = args.strategy ?? DEFAULT_STRATEGY
     const url = args.url.startsWith("http") ? args.url : `https://${args.url}`
 
     try {
-      let content = await fetchWithTimeout(url, TIMEOUT_MS)
-      const originalSize = content.length
+      const rawContent = await fetchWithTimeout(url, TIMEOUT_MS)
+      const originalSize = rawContent.length
+
+      if (strategy === "raw" && originalSize > MAX_RAW_SIZE) {
+        return [
+          `Error: Response size (${formatBytes(originalSize)}) exceeds raw strategy limit (${formatBytes(MAX_RAW_SIZE)}).`,
+          "This will cause token overflow.",
+          "",
+          "Suggested alternatives:",
+          "- Use a different compaction strategy when available",
+        ].join("\n")
+      }
+
+      let result = applyStrategy(rawContent, strategy)
 
       let truncated = false
-      if (content.length > MAX_OUTPUT_SIZE) {
-        content = content.slice(0, MAX_OUTPUT_SIZE)
+      if (result.length > MAX_OUTPUT_SIZE) {
+        result = result.slice(0, MAX_OUTPUT_SIZE)
         truncated = true
       }
 
+      const compactedSize = result.length
+      const reduction = ((1 - compactedSize / originalSize) * 100).toFixed(1)
+
       const header = [
         `URL: ${url}`,
-        `Size: ${formatBytes(originalSize)}`,
+        `Strategy: ${strategy}`,
+        `Size: ${formatBytes(originalSize)} → ${formatBytes(compactedSize)} (${reduction}% reduction)`,
         truncated ? `[Output truncated to ${formatBytes(MAX_OUTPUT_SIZE)}]` : "",
         "---",
       ]
         .filter(Boolean)
         .join("\n")
 
-      return `${header}\n\n${content}`
+      return `${header}\n\n${result}`
     } catch (error) {
       if (error instanceof Error) {
         if (error.name === "AbortError") {
